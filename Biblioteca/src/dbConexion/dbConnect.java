@@ -1,5 +1,7 @@
 package dbConexion;
 
+import clases.genero;
+import clases.libro;
 import clases.salida;
 
 import javax.swing.plaf.synth.Region;
@@ -64,7 +66,7 @@ public class dbConnect {
         }
     }
 
-    public static String InsertarSalida(salida salida) throws SQLException{
+    public static String InsertarSalida(salida salida){
         Connection conexion = conectar();
         String query = "INSERT INTO salidas (IDX_TIPO_SALIDA,NOMBRE_CLIENTE, CORREO_CLIENTE, IDX_LIBRO, FECHA_SALIDA, COMENTARIO) VALUES (?,?,?,?,"+ LocalDateTime.now() +",?);";
 
@@ -82,6 +84,43 @@ public class dbConnect {
         }catch (Exception ex){
 
             return "Hubo un error al tratar de agregar la salida: " +ex;
+        }
+    }
+
+    public static String InsertarNuevoGenero(genero genero){
+        Connection conexion = conectar();
+        String query = "INSERT INTO generos (GENERO_DESC, ESTADO) VALUES (?,?);";
+
+        try {
+            PreparedStatement Mysql = conexion.prepareStatement(query);
+            Mysql.setString(1,genero.genero);
+            Mysql.setBoolean(2,genero.bitEstado);
+
+            Mysql.executeUpdate();
+
+            return "Género agregado";
+        }catch (Exception ex){
+
+            return "Hubo un error al tratar de agregar el Género: " +ex;
+        }
+    }
+
+    public static String InsertarNuevoLibro(libro libro){
+        Connection conexion = conectar();
+        String query = "INSERT INTO libros (NOMBRE_LIBRO,IDX_GENERO_LIBRO,ESTADO) VALUES (?,?,?);";
+
+        try {
+            PreparedStatement Mysql = conexion.prepareStatement(query);
+            Mysql.setString(1,libro.libro);
+            Mysql.setInt(2,libro.idx_genero);
+            Mysql.setBoolean(3,libro.bitEstado);
+
+            Mysql.executeUpdate();
+
+            return "Libro agregado";
+        }catch (Exception ex){
+
+            return "Hubo un error al tratar de agregar el Libro: " +ex;
         }
     }
 
