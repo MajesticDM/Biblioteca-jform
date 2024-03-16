@@ -298,6 +298,12 @@ public class dashboard extends JDialog {
                 login.setVisible(true);
             }
         });
+        editarSalida.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                noEditarSalida();
+            }
+        });
     }
 
     private void crearFacturaSalida(salida salida) throws FileNotFoundException, DocumentException {
@@ -375,8 +381,13 @@ public class dashboard extends JDialog {
                 g.drawString("Nota - "+ salida.comentario, 70, 510);
 
                 //Icono QR para ir a Github
-                ImageIcon img1 = new ImageIcon(Objects.requireNonNull(getClass().getResource("../../assets/imagenes/qrcode_github.com.png")));
-                g.drawImage(img1.getImage(), 480, 670, 90, 90, null);
+                try{
+                    ImageIcon img1 = new ImageIcon(Objects.requireNonNull(getClass().getResource("qrcode_github.com.png")));
+                    g.drawImage(img1.getImage(), 480, 670, 90, 90, null);
+                }catch (Exception e){
+                    JOptionPane.showMessageDialog(this,"El error es la ubicación de la img");
+                }
+
 
                 Font font2 = new Font("Tahoma", Font.PLAIN, 7);
                 g.setFont(font2);
@@ -390,7 +401,7 @@ public class dashboard extends JDialog {
                 JOptionPane.showMessageDialog(null, "Salida guardada correctamente en: " + nombreArchivo);
             } catch (Exception e) {
                 e.printStackTrace();
-                JOptionPane.showMessageDialog(null, "Error al guardar la factura: " + e.getMessage());
+                JOptionPane.showMessageDialog(null, "Error al guardar la factura: " + e);
             }
         }
     }
@@ -429,7 +440,7 @@ public class dashboard extends JDialog {
     }
 
     public void noEditarSalida(){
-        JOptionPane.showMessageDialog(this,"Este libro ya generó factura, si cambias algo, la factura del cliente no serviría de nada.","Información",JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this,"Cada salida genera factura, si cambias algo, la factura del cliente no serviría de nada.","Información",JOptionPane.INFORMATION_MESSAGE);
     }
     private void crearNuevoGenero()  throws SQLException{
         genero genero = new genero();

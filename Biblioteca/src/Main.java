@@ -1,5 +1,7 @@
+import vistas.login.login;
+
 public class Main {
     public static void main(String[] args) {
-        System.out.println("Hello world, this is Daniel!");
+        login login = new login(null);
     }
 }
