@@ -1,0 +1,11 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="Biblioteca:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/Biblioteca_jar</output-path>
+    <root id="archive" name="Biblioteca.jar">
+      <element id="module-output" name="Biblioteca" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/src/libreriasAgregadas/rs2xml.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/src/libreriasAgregadas/mysql-connector-j-8.3.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/src/libreriasAgregadas/iText-2.0.8.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
