@@ -203,4 +203,17 @@ public class dbConnect {
         return Mysql.executeQuery(query);
     }
 
+    public static boolean consultarOnline() throws SQLException {
+
+        try{
+            Connection conexion = conectar();
+            Statement Mysql = conexion.createStatement();
+            String query = "SELECT ID_USUARIO FROM usuarios";
+            Mysql.executeQuery(query);
+            return true;
+        }catch (Exception ex){
+            return false;
+        }
+    }
+
 }

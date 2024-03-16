@@ -10,6 +10,7 @@ import java.util.Objects;
 
 import clases.usuario;
 import dbConexion.dbConnect;
+import vistas.inicio.dashboard;
 
 public class login extends JDialog {
     private JButton IniciarSesion;
@@ -68,7 +69,11 @@ public class login extends JDialog {
                     "Bienvenido",0,
                     JOptionPane.INFORMATION_MESSAGE,null,options, null);
             if (opcion == JOptionPane.YES_OPTION) {
-                System.out.print("Redirigido");
+                dispose();
+
+                dashboard dashboard = new dashboard(null);
+                dashboard.setVisible(true);
+
             } else if (opcion == JOptionPane.NO_OPTION) {
                 dispose();
             }
@@ -83,7 +88,7 @@ public class login extends JDialog {
     private boolean consultarLogin(String usuario, String contrasena) throws SQLException {
         ResultSet existe = dbConnect.consultarLogin(usuario, contrasena);
         while (existe.next()){
-            nombreUsuario = existe.getString("NOMBRE");
+            nombreUsuario = existe.getString("NOMBRE_USUARIO");
         }
         return existe.next();
     }

@@ -3,20 +3,34 @@ package vistas.inicio;
 import clases.genero;
 import clases.libro;
 import clases.salida;
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.pdf.PdfContentByte;
+import com.lowagie.text.pdf.PdfWriter;
+import com.mysql.cj.jdbc.result.ResultSetImpl;
 import net.proteanit.sql.DbUtils;
 
 import javax.swing.*;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Objects;
 
 import dbConexion.dbConnect;
+import vistas.login.login;
 
 public class dashboard extends JDialog {
     private JButton salirButton;
@@ -56,6 +70,7 @@ public class dashboard extends JDialog {
     private JTextField ID_GENERO;
     private JTextField ID_LIBRO;
     private JTextField IDX_GENERO_LIBRO;
+    private JPanel panelOnline;
 
     private static String[] estados = {"Activo","Inactivo"};
 
@@ -70,6 +85,7 @@ public class dashboard extends JDialog {
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
 
         setVisible(true);
+        consultarSiEstoyEnLinea();
         cargarDatosDeInicio();
 
         PanelInicio.addComponentListener(new ComponentAdapter() {
@@ -78,29 +94,31 @@ public class dashboard extends JDialog {
             @Override
             public void stateChanged(ChangeEvent e) {
                 try {
+                    consultarSiEstoyEnLinea();
                     cargarTablaPrestamos();
                 } catch (SQLException ex) {
                     throw new RuntimeException(ex);
                 }
             }
         });
-        editarSalida.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                noEditarSalida();
-            }
 
-
-        });
         guardarSalida.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
+
+                    if(txtCliente.getText().isEmpty() || txtCElectronico.getText().isEmpty() || txtComentario.getText().isEmpty()){
+                        JOptionPane.showMessageDialog(null,"Todos los campos son obligatorios","Campos vacíos",JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    consultarSiEstoyEnLinea();
                     CrearNuevaSalida();
                     cargarTablaPrestamos();
                     cargarDatosDeInicio();
                 } catch (SQLException ex) {
                     return;
+                } catch (DocumentException | FileNotFoundException ex) {
+                    throw new RuntimeException(ex);
                 }
             }
         });
@@ -126,6 +144,7 @@ public class dashboard extends JDialog {
                 }
 
                 try {
+                    consultarSiEstoyEnLinea();
                     cargarTablaLibros();
                     cargarTablaGeneros();
                 } catch (SQLException ex) {
@@ -138,6 +157,11 @@ public class dashboard extends JDialog {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
+                    if(txtGenero.getText().isEmpty()){
+                        JOptionPane.showMessageDialog(null,"El género es obligatorio","Campo vacío",JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    consultarSiEstoyEnLinea();
                     crearNuevoGenero();
                     cargarTablaGeneros();
 
@@ -150,6 +174,11 @@ public class dashboard extends JDialog {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
+                    if(txtNombreLibro.getText().isEmpty()){
+                        JOptionPane.showMessageDialog(null,"El nombre del Libro es obligatorio","Campo vacío",JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                    consultarSiEstoyEnLinea();
                     crearNuevoLibro();
                     cargarTablaLibros();
                 } catch (SQLException ex) {
@@ -202,6 +231,7 @@ public class dashboard extends JDialog {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
+                    consultarSiEstoyEnLinea();
                     editarGeneroSeleccionado();
                     cargarTablaGeneros();
                 } catch (SQLException ex) {
@@ -222,6 +252,7 @@ public class dashboard extends JDialog {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
+                    consultarSiEstoyEnLinea();
                     editarLibroSeleccionado();
                     cargarTablaLibros();
                 } catch (SQLException ex) {
@@ -252,6 +283,116 @@ public class dashboard extends JDialog {
 
             }
         });
+        salirButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dispose();
+            }
+        });
+        loginButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dispose();
+
+                login login = new login(null);
+                login.setVisible(true);
+            }
+        });
+    }
+
+    private void crearFacturaSalida(salida salida) throws FileNotFoundException, DocumentException {
+
+        LocalDateTime FechaLocal = LocalDateTime.now();
+        DateTimeFormatter FechaParaFormato = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm:ss");
+        String FechaFormateada = FechaLocal.format(FechaParaFormato);
+
+        Document doc = new Document();
+
+        String nombreDocumento = cxTipoSalida.getSelectedItem() + "_"+ salida.cliente.replace(" ", "-") +"_"+ cxLibro.getSelectedItem().toString().replace(" ", "")+ "_" + FechaFormateada.replace(" ", "-").replace(":","-");
+
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle("Guardar factura");
+
+        fileChooser.setSelectedFile(new File(nombreDocumento));
+
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos PDF", "pdf");
+        fileChooser.setFileFilter(filter);
+
+        int seleccion = fileChooser.showSaveDialog(null);
+
+        if (seleccion == JFileChooser.APPROVE_OPTION) {
+            File archivoSeleccionado = fileChooser.getSelectedFile();
+
+            try {
+                String nombreArchivo = archivoSeleccionado.getAbsolutePath();
+                if (!nombreArchivo.toLowerCase().endsWith(".pdf")) {
+                    nombreArchivo += ".pdf";
+                }
+
+                PdfWriter pdf = PdfWriter.getInstance(doc, new FileOutputStream(nombreArchivo));
+
+                doc.open();
+
+                PdfContentByte cb = pdf.getDirectContent();
+                Graphics g = cb.createGraphicsShapes(PageSize.LETTER.getWidth(),PageSize.LETTER.getHeight());
+
+                g.setColor(Color.black);
+                g.drawRect(1, 1, 593, 790);
+
+                g.setColor(new Color(148, 61, 0));
+                g.fillOval(290, 90, 280, 100);
+
+                Font font1 = new Font("Tahoma", Font.BOLD + Font.ITALIC, 35);
+                g.setFont(font1);
+
+                g.setColor(Color.BLACK);
+                g.drawString("Gracias por su compra", 40, 150);
+
+                g.setColor(Color.WHITE);
+                g.drawString("compra", 305, 150);
+
+                font1 = new Font("Tahoma", Font.BOLD + Font.ITALIC, 25);
+                g.setFont(font1);
+
+                g.setColor(Color.BLACK);
+                g.drawString("Datos de la salida", 70, 300);
+
+                //Datos de la Salida
+
+                font1 = new Font("Tahoma", Font.BOLD + Font.ITALIC, 15);
+                g.setFont(font1);
+                g.setColor(Color.BLACK);
+                g.drawString("Cliente - " + salida.cliente, 70, 330);
+                g.setColor(Color.BLACK);
+                g.drawString("Correo - "+ salida.correo, 70, 360);
+                g.setColor(Color.BLACK);
+                g.drawString("Libro - "+ cxLibro.getSelectedItem(), 70, 390);
+                g.setColor(Color.BLACK);
+                g.drawString("Fecha salida - "+ FechaFormateada, 70, 450);
+                g.setColor(Color.BLACK);
+                g.drawString("Tipo de salida - "+ cxTipoSalida.getSelectedItem(), 70, 480);
+                g.setColor(Color.BLACK);
+                g.drawString("Nota - "+ salida.comentario, 70, 510);
+
+                //Icono QR para ir a Github
+                ImageIcon img1 = new ImageIcon(Objects.requireNonNull(getClass().getResource("../../assets/imagenes/qrcode_github.com.png")));
+                g.drawImage(img1.getImage(), 480, 670, 90, 90, null);
+
+                Font font2 = new Font("Tahoma", Font.PLAIN, 7);
+                g.setFont(font2);
+                g.setColor(Color.BLACK);
+                g.drawString("Escanea el código QR para conocer más acerca ", 430, 770);
+                g.drawString("del desarrollador", 480, 780);
+
+                doc.close();
+                pdf.close();
+
+                JOptionPane.showMessageDialog(null, "Salida guardada correctamente en: " + nombreArchivo);
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Error al guardar la factura: " + e.getMessage());
+            }
+        }
     }
 
     private void editarLibroSeleccionado() throws SQLException {
@@ -318,6 +459,22 @@ public class dashboard extends JDialog {
         ResultSet rs = dbConnect.cargarLibros();
         jTableLibros.setModel(DbUtils.resultSetToTableModel(rs));
 
+
+        //Tengo dos columnas que son ID, por eso las oculto pero no las elimino
+        TableColumn columna = jTableLibros.getColumnModel().getColumn(1);
+        columna.setMinWidth(0);
+        columna.setMaxWidth(0);
+        columna.setWidth(0);
+        columna.setPreferredWidth(0);
+        columna.setResizable(false);
+
+        TableColumn columna2 = jTableLibros.getColumnModel().getColumn(4);
+        columna2.setMinWidth(0);
+        columna2.setMaxWidth(0);
+        columna2.setWidth(0);
+        columna2.setPreferredWidth(0);
+        columna2.setResizable(false);
+
         rs = dbConnect.cargarGeneros();
         cxGeneroLibro.removeAllItems();
 
@@ -327,17 +484,38 @@ public class dashboard extends JDialog {
 
     }
     private void cargarTablaPrestamos() throws SQLException {
+        ResultSet rs;
+        try {
+     rs = dbConnect.ConsultarLibrosPrestados();
+}catch (Exception ex){
+     consultarSiEstoyEnLinea();
+            rs = dbConnect.ConsultarLibrosPrestados();
+}
 
-        ResultSet rs = dbConnect.ConsultarLibrosPrestados();
 
         //Cargar Tabla Salidas
         TablePrestamos.setModel(DbUtils.resultSetToTableModel(rs));
+
+        //Tengo dos columnas que son ID, por eso las oculto pero no las elimino
+        TableColumn columna = TablePrestamos.getColumnModel().getColumn(7);
+        columna.setMinWidth(0);
+        columna.setMaxWidth(0);
+        columna.setWidth(0);
+        columna.setPreferredWidth(0);
+        columna.setResizable(false);
+
+        TableColumn columna2 = TablePrestamos.getColumnModel().getColumn(8);
+        columna2.setMinWidth(0);
+        columna2.setMaxWidth(0);
+        columna2.setWidth(0);
+        columna2.setPreferredWidth(0);
+        columna2.setResizable(false);
 
         //Para cargr combos
         CargarComboLibros();
         CargarComboTipoSalida();
     }
-    private void CrearNuevaSalida() throws SQLException{
+    private void CrearNuevaSalida() throws SQLException, DocumentException, FileNotFoundException {
         salida salida = new salida();
 
         salida.cliente = txtCliente.getText();
@@ -350,6 +528,7 @@ public class dashboard extends JDialog {
 
         JOptionPane.showMessageDialog(this,respuesta,"Información",JOptionPane.INFORMATION_MESSAGE);
 
+        crearFacturaSalida(salida);
     }
 
     private void CargarComboLibros() throws SQLException{
@@ -364,13 +543,25 @@ public class dashboard extends JDialog {
     }
 
     private void cargarDatosDeInicio() throws SQLException{
-
         ResultSet rs =  dbConnect.cargarDatosInicio();
 
         while (rs.next()) {
             panelLibrosPrestados.setText(rs.getString("PRESTAMOS"));
             panelLibrosVendidos.setText(rs.getString("VENTAS"));
             panelLibrosObsequiados.setText(rs.getString("OBSEQUIOS"));
+        }
+
+    }
+
+    private void consultarSiEstoyEnLinea() throws SQLException{
+
+        boolean conectado = dbConnect.consultarOnline();
+
+        if(conectado){
+         panelOnline.setBackground(Color.green);
+        }else{
+            JOptionPane.showMessageDialog(this,"Parece que no estás en línea, revisa la conexión a base de datos","Sin conexion",JOptionPane.ERROR_MESSAGE);
+            panelOnline.setBackground(Color.red);
         }
 
     }
